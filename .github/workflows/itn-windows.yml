@@ -54,6 +54,9 @@ jobs:
           version: itn-${{ github.sha }}
           build-type: ${{ steps.setup-dependencies.outputs.build-type }}
           artifact-name: Windows-MSVC
+          azure-client-id: ''
+          azure-tenant-id: ''
+          azure-subscription-id: ''
 
       - name: Upload ITN artifact
         uses: actions/upload-artifact@v4
