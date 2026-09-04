@@ -16,6 +16,17 @@
 
 Внутри уже есть **ITN Modded**, **ITN Vanilla** и Java 17 (`jre/`).
 
+## Автообновление
+
+Лаунчер при старте проверяет [GitHub Releases](https://github.com/NIXXXON177/ITN-Studio-s-Launcher/releases):
+
+1. Сравнивает локальный `itn-version.txt` с тегом latest
+2. Скачивает `ITNLauncher-windows*.zip`
+3. Ставит поверх, **сохраняя** `accounts.json`, сейвы и скриншоты
+4. Перезапускается
+
+Пока нет свежей пересборки `ITNLauncher.exe`, можно вручную: `ITN-update.ps1` в portable-папке.
+
 ## Сборка из исходников
 
 Стек: **C++ / Qt 6**, CMake + vcpkg (как у Prism). См. upstream README и `CMakePresets.json`.
