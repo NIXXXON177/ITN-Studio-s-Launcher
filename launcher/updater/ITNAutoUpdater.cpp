@@ -23,6 +23,7 @@
 
 #include "Application.h"
 #include "FileSystem.h"
+#include "InstanceList.h"
 #include "QObjectPtr.h"
 #include "Version.h"
 #include "archive/ExtractZipTask.h"
@@ -375,7 +376,9 @@ void ITNAutoUpdater::onGameDownloadFinished()
 
 bool ITNAutoUpdater::shouldPreservePath(const QString& relativePath) const
 {
-    const QString p = relativePath.replace('\\', '/').toLower();
+    QString p = relativePath;
+    p.replace('\\', '/');
+    p = p.toLower();
     if (p.endsWith(QStringLiteral("accounts.json")))
         return true;
     if (p.contains(QStringLiteral("/saves/")))
