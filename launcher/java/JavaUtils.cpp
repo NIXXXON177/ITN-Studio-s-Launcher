@@ -33,6 +33,7 @@
  *      limitations under the License.
  */
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
 #include <QString>
@@ -253,6 +254,11 @@ QList<QString> JavaUtils::FindJavaPaths()
 {
     QList<JavaInstallPtr> java_candidates;
 
+    // ITN: portable JRE shipped next to ITNLauncher.exe
+    if (const QString bundled = findBundledJava(); !bundled.isEmpty()) {
+        java_candidates.append(MakeJavaPtr(bundled));
+    }
+
     // Oracle
     QList<JavaInstallPtr> JRE64s =
         this->FindJavaFromRegistryKey(KEY_WOW64_64KEY, "SOFTWARE\\JavaSoft\\Java Runtime Environment", "JavaHome");
@@ -367,6 +373,9 @@ QList<QString> JavaUtils::FindJavaPaths()
 QList<QString> JavaUtils::FindJavaPaths()
 {
     QList<QString> javas;
+    if (const QString bundled = findBundledJava(); !bundled.isEmpty()) {
+        javas.append(bundled);
+    }
     javas.append(this->GetDefaultJava()->path);
     javas.append("/Applications/Xcode.app/Contents/Applications/Application Loader.app/Contents/MacOS/itms/java/bin/java");
     javas.append("/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java");
@@ -421,6 +430,9 @@ QList<QString> JavaUtils::FindJavaPaths()
 QList<QString> JavaUtils::FindJavaPaths()
 {
     QList<QString> javas;
+    if (const QString bundled = findBundledJava(); !bundled.isEmpty()) {
+        javas.append(bundled);
+    }
     javas.append(this->GetDefaultJava()->path);
     auto scanJavaDir = [&javas](
                            const QString& dirPath,
@@ -569,6 +581,32 @@ const QString JavaUtils::javaExecutable = "javaw.exe";
 #else
 const QString JavaUtils::javaExecutable = "java";
 #endif
+
+QString JavaUtils::findBundledJava()
+{
+    const QString appDir = QCoreApplication::applicationDirPath();
+    const QStringList direct = {
+        FS::PathCombine(appDir, "jre", "bin", javaExecutable),
+        FS::PathCombine(appDir, "java", "java-runtime-gamma", "bin", javaExecutable),
+    };
+    for (const auto& path : direct) {
+        if (QFileInfo::exists(path)) {
+            return QDir::toNativeSeparators(QFileInfo(path).absoluteFilePath());
+        }
+    }
+
+    QDir javaRoot(FS::PathCombine(appDir, "java"));
+    if (javaRoot.exists()) {
+        const auto entries = javaRoot.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const auto& entry : entries) {
+            const QString path = FS::PathCombine(javaRoot.absoluteFilePath(entry), "bin", javaExecutable);
+            if (QFileInfo::exists(path)) {
+                return QDir::toNativeSeparators(QFileInfo(path).absoluteFilePath());
+            }
+        }
+    }
+    return {};
+}
 
 QStringList getPrismJavaBundle()
 {

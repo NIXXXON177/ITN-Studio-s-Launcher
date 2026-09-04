@@ -42,5 +42,7 @@ class JavaUtils : public QObject {
 #endif
 
     static QString getJavaCheckPath();
+    /** ITN: javaw/java next to the portable launcher (./jre or ./java/*). */
+    static QString findBundledJava();
     static const QString javaExecutable;
 };

@@ -5,6 +5,7 @@
 #include "ui/pages/BasePage.h"
 #include "ui/pages/BasePageProvider.h"
 #include "ui/pages/instance/InstanceSettingsPage.h"
+#include "ui/pages/instance/ITNGamePage.h"
 #include "ui/pages/instance/LogPage.h"
 #include "ui/pages/instance/ManagedPackPage.h"
 #include "ui/pages/instance/ModFolderPage.h"
@@ -28,6 +29,7 @@ class InstancePageProvider : protected QObject, public BasePageProvider {
     {
         QList<BasePage*> values;
         values.append(new LogPage(inst));
+        values.append(new ITNGamePage(inst));
         values.append(new VersionPage(inst));
         values.append(ManagedPackPage::createPage(inst));
         auto modsPage = new ModFolderPage(inst, inst->loaderModList());

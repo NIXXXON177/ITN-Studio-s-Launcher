@@ -55,6 +55,7 @@
 #include <QActionGroup>
 #include <QApplication>
 #include <QButtonGroup>
+#include <QFile>
 #include <QFileDialog>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -65,8 +66,11 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QSettings>
 #include <QProgressDialog>
 #include <QShortcut>
+#include <QTextStream>
+#include <QTimer>
 #include <QStatusBar>
 #include <QToolBar>
 #include <QToolButton>
@@ -130,6 +134,7 @@
 
 #include "InstanceCopyTask.h"
 #include "InstanceDirUpdate.h"
+#include "InstanceImportTask.h"
 
 #include "Json.h"
 
@@ -149,6 +154,25 @@ QString profileInUseFilter(const QString& profile, bool used)
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    // ITN: no fullscreen/maximize, fixed window chrome
+    setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
+
+    // ITN: instance actions toolbar on the left
+    removeToolBar(ui->instanceToolBar);
+    addToolBar(Qt::LeftToolBarArea, ui->instanceToolBar);
+    ui->instanceToolBar->show();
+
+    // ITN: no adding/copying/exporting instances, minimal UI
+    ui->actionAddInstance->setVisible(false);
+    ui->actionCopyInstance->setVisible(false);
+    ui->actionExportInstance->setVisible(false);
+    ui->actionExportInstanceZip->setVisible(false);
+    ui->actionExportInstanceMrPack->setVisible(false);
+    ui->actionExportInstanceFlamePack->setVisible(false);
+
+    // ITN: auto-import the bundled modpack on first run
+    QTimer::singleShot(0, this, [this] { checkITNAutoImport(); });
 
     setWindowIcon(APPLICATION->logo());
     setWindowTitle(APPLICATION->applicationDisplayName());
@@ -380,6 +404,10 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     m_statusCenter = new QLabel(tr("Total playtime: 0s"), this);
     statusBar()->addPermanentWidget(m_statusLeft, 1);
     statusBar()->addPermanentWidget(m_statusCenter, 0);
+    // ITN: no news bar and no status bar
+    ui->newsToolBar->setVisible(false);
+    ui->actionToggleStatusBar->setVisible(false);
+    statusBar()->setVisible(false);
 
     // Add "manage accounts" button, right align
     QWidget* spacer = new QWidget();
@@ -556,19 +584,9 @@ void MainWindow::showInstanceContextMenu(const QPoint& pos)
         QAction* actionVoid = new QAction(group.isNull() ? BuildConfig.LAUNCHER_DISPLAYNAME : group, this);
         actionVoid->setEnabled(false);
 
-        QAction* actionCreateInstance = new QAction(tr("&Create instance"), this);
-        actionCreateInstance->setToolTip(ui->actionAddInstance->toolTip());
-        if (!group.isNull()) {
-            QVariantMap instance_action_data;
-            instance_action_data["group"] = group;
-            actionCreateInstance->setData(instance_action_data);
-        }
-
-        connect(actionCreateInstance, &QAction::triggered, this, &MainWindow::on_actionAddInstance_triggered);
-
+        // ITN: creating instances is disabled
         actions.prepend(actionSep);
         actions.prepend(actionVoid);
-        actions.append(actionCreateInstance);
         if (!group.isNull()) {
             QAction* actionDeleteGroup = new QAction(tr("&Delete group"), this);
             connect(actionDeleteGroup, &QAction::triggered, this, [this, group] { deleteGroup(group); });
@@ -854,17 +872,11 @@ void MainWindow::setCatBackground(bool enabled)
 
 void MainWindow::updateCatState()
 {
-    SettingsObject* settings = APPLICATION->settings();
-    const bool catEnabled = settings->get("EnableCat").toBool();
-    bool catVisible = settings->get("TheCat").toBool();
-    if (!catEnabled && catVisible) {
-        settings->set("TheCat", false);
-        catVisible = false;
-    }
-
-    ui->actionCAT->setVisible(catEnabled);
-    ui->actionCAT->setChecked(catVisible);
-    setCatBackground(catVisible);
+    // ITN: cat background removed
+    APPLICATION->settings()->set("TheCat", false);
+    ui->actionCAT->setVisible(false);
+    ui->actionCAT->setChecked(false);
+    setCatBackground(false);
 }
 
 void MainWindow::runModalTask(Task* task)
@@ -941,6 +953,94 @@ void MainWindow::addInstance(const QString& url, const QMap<QString, QString>& e
 void MainWindow::on_actionAddInstance_triggered()
 {
     addInstance();
+}
+
+void MainWindow::checkITNAutoImport()
+{
+    // ITN: import the bundled modpack on first run (instances are managed by ITN)
+    const QString marker = FS::PathCombine(APPLICATION->dataRoot(), "itn-modded.imported");
+    if (QFile::exists(marker)) {
+        return;
+    }
+    const QString mrpack = FS::PathCombine(QCoreApplication::applicationDirPath(), "ITN-Modded.mrpack");
+    if (!QFile::exists(mrpack)) {
+        return;
+    }
+
+    // Clean leftovers from older builds that unpacked into the launcher root (empty staging path)
+    const QString appRoot = QCoreApplication::applicationDirPath();
+    for (const auto& leftover : { QStringLiteral("overrides"), QStringLiteral("minecraft"), QStringLiteral("mrpack"),
+                                  QStringLiteral("modrinth.index.json") }) {
+        const QString path = FS::PathCombine(appRoot, leftover);
+        if (QFileInfo::exists(path)) {
+            qWarning() << "ITN: removing leftover import path" << path;
+            FS::deletePath(path);
+        }
+    }
+
+    // collect existing instance dirs to find the newly imported one later
+    const QString instRoot = APPLICATION->instances()->primaryDir();
+    QSet<QString> before;
+    if (!instRoot.isEmpty()) {
+        const auto entries = QDir(instRoot).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const auto& e : entries) {
+            before.insert(e);
+        }
+    }
+
+    auto* rawTask = new InstanceImportTask(QUrl::fromLocalFile(mrpack), true, this, {});
+    rawTask->setName(QStringLiteral("ITN Modded"));
+    rawTask->setGroup(QString());
+    unique_qobject_ptr<Task> task(APPLICATION->instances()->wrapInstanceTask(rawTask));
+
+    ProgressDialog dlg(this);
+    dlg.setSkipButton(true, tr("Abort"));
+    if (dlg.execWithTask(task.get()) != QDialog::Accepted) {
+        return;
+    }
+
+    // copy the preconfigured servers list into the new instance and enable auto-join + bundled Java
+    const QString serversTpl = FS::PathCombine(QCoreApplication::applicationDirPath(), "servers-modded.dat");
+    const QString bundledJava = JavaUtils::findBundledJava();
+    if (!instRoot.isEmpty()) {
+        const auto entries = QDir(instRoot).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const auto& e : entries) {
+            if (before.contains(e)) {
+                continue;
+            }
+            if (QFile::exists(serversTpl)) {
+                QDir mcDir(FS::PathCombine(instRoot, e, ".minecraft"));
+                if (mcDir.mkpath(".")) {
+                    QFile::remove(mcDir.filePath("servers.dat"));
+                    QFile::copy(serversTpl, mcDir.filePath("servers.dat"));
+                }
+            }
+            // ITN: launch straight into the modded server on Play
+            QSettings instCfg(FS::PathCombine(instRoot, e, "instance.cfg"), QSettings::IniFormat);
+            instCfg.setValue("General/JoinServerOnLaunch", true);
+            instCfg.setValue("General/JoinServerOnLaunchAddress", "isnix.ru");
+            if (!bundledJava.isEmpty()) {
+                instCfg.setValue("General/OverrideJavaLocation", true);
+                instCfg.setValue("General/JavaPath", bundledJava);
+                instCfg.setValue("General/AutomaticJava", false);
+            }
+            instCfg.sync();
+            // ITN: default game settings (Quake Pro FOV, Russian, music off, no vsync, max fps)
+            const QString optionsPath = FS::PathCombine(instRoot, e, ".minecraft", "options.txt");
+            if (!QFile::exists(optionsPath)) {
+                QFile opt(optionsPath);
+                if (opt.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                    QTextStream out(&opt);
+                    out << "fov:110.0\nlang:ru_ru\nsoundCategory_music:0.0\nenableVsync:false\nmaxFps:260\n";
+                    opt.close();
+                }
+            }
+        }
+    }
+    QFile f(marker);
+    if (f.open(QIODevice::WriteOnly)) {
+        f.close();
+    }
 }
 
 void MainWindow::processURLs(QList<QUrl> urls)
@@ -1137,7 +1237,11 @@ void MainWindow::processURLs(QList<QUrl> urls)
         auto type = ResourceUtils::identify(localFileInfo);
 
         if (ModPlatform::ResourceTypeUtils::g_VALID_RESOURCES.count(type) == 0) {  // probably instance/modpack
-            addInstance(localFileName, extra_info);
+            // ITN: adding instances is disabled, instances are managed by ITN
+            CustomMessageBox::selectable(this, tr("ITN Launcher"),
+                                         tr("Adding instances is disabled in ITN Launcher.\nInstances are installed and updated automatically."),
+                                         QMessageBox::Information)
+                ->show();
             continue;
         }
 

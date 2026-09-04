@@ -74,6 +74,13 @@ MinecraftAccountPtr MinecraftAccount::createBlankMSA()
     return account;
 }
 
+MinecraftAccountPtr MinecraftAccount::createBlank(const AccountType type)
+{
+    MinecraftAccountPtr account(new MinecraftAccount());
+    account->data.type = type;
+    return account;
+}
+
 MinecraftAccountPtr MinecraftAccount::createOffline(const QString& username)
 {
     auto account = makeShared<MinecraftAccount>();
@@ -163,7 +170,7 @@ void MinecraftAccount::authFailed(QString reason)
             // NOTE: this doesn't do much. There was an error of some sort.
         } break;
         case AccountTaskState::STATE_FAILED_HARD: {
-            if (accountType() == AccountType::MSA) {
+            if (accountType() == AccountType::MSA || accountType() == AccountType::Ely) {
                 data.msaToken.token = QString();
                 data.msaToken.refresh_token = QString();
                 data.msaToken.validity = Validity::None;
@@ -193,10 +200,23 @@ void MinecraftAccount::authFailed(QString reason)
 
 QString MinecraftAccount::displayName() const
 {
+    const auto typeFriendlyString = [](const AccountType type) {
+        switch (type) {
+            case AccountType::MSA:
+                return QStringLiteral("MSA");
+            case AccountType::Ely:
+                return QStringLiteral("Ely.by");
+            case AccountType::Offline:
+                return QStringLiteral("Offline");
+        }
+        Q_ASSERT_X(false, "MinecraftAccount::displayName", "No type friendly string mapping for current account type");
+        return QString();
+    };
+    const QString nameWithType = QString("%1 [%2]").arg(profileName(), typeFriendlyString(data.type));
     if (const QList validStates{ AccountState::Unchecked, AccountState::Working, AccountState::Offline, AccountState::Online }; !validStates.contains(accountState())) {
-        return QString("⚠ %1").arg(profileName());
+        return QString("! %1").arg(nameWithType);
     }
-    return profileName();
+    return nameWithType;
 }
 
 bool MinecraftAccount::isActive() const

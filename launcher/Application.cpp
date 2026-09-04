@@ -45,6 +45,7 @@
 
 #include "DataMigrationTask.h"
 #include "java/JavaInstallList.h"
+#include "java/JavaUtils.h"
 #include "net/PasteUpload.h"
 #include "tasks/Task.h"
 #include "tools/GenericProfiler.h"
@@ -640,6 +641,8 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
         // Theming
         m_settings->registerSetting("IconTheme", QString());
         m_settings->registerSetting("ApplicationTheme", QString());
+        // ITN: show "import from other launcher" only for migration (default off)
+        m_settings->registerSetting("ITNShowMigrationImport", false);
         m_settings->registerSetting("BackgroundCat", QString("kitteh"));
 
         // Remembered state
@@ -708,8 +711,8 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
         // Editors
         m_settings->registerSetting("JsonEditor", QString());
 
-        // Language
-        m_settings->registerSetting("Language", QString());
+        // Language (ITN: Russian only)
+        m_settings->registerSetting("Language", QString("ru"));
         m_settings->registerSetting("UseSystemLocale", false);
 
         // Console
@@ -751,6 +754,19 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
         m_settings->registerSetting("AutomaticJavaSwitch", defaultEnableAutoJava);
         m_settings->registerSetting("AutomaticJavaDownload", defaultEnableAutoJava);
         m_settings->registerSetting("UserAskedAboutAutomaticJavaDownload", false);
+
+        // ITN: portable build ships JRE next to the binary — prefer it over a missing/stale path
+        {
+            const QString currentJava = m_settings->get("JavaPath").toString();
+            const bool missing = currentJava.isEmpty() || !QFileInfo::exists(FS::ResolveExecutable(currentJava));
+            if (missing) {
+                const QString bundled = JavaUtils::findBundledJava();
+                if (!bundled.isEmpty()) {
+                    m_settings->set("JavaPath", bundled);
+                    qDebug() << "ITN: using bundled Java" << bundled;
+                }
+            }
+        }
 
         // Legacy settings
         m_settings->registerSetting("OnlineFixes", false);
@@ -885,6 +901,8 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
 
         // Custom Microsoft Authentication Client ID
         m_settings->registerSetting("MSAClientIDOverride", "");
+        // Custom Ely.by Accounts OAuth ID
+        m_settings->registerSetting("ElyClientIDOverride", "");
 
         // Custom Flame API Key
         m_settings->registerSetting({ "FlameKeyOverride", "CFKeyOverride" }, "");
@@ -903,7 +921,7 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
         {
             m_globalSettingsProvider = std::make_unique<GenericPageProvider>(tr("Settings"));
             m_globalSettingsProvider->addPage<LauncherPage>();
-            m_globalSettingsProvider->addPage<LanguagePage>();
+            // ITN: language selection removed, Russian only
             m_globalSettingsProvider->addPage<AppearancePage>();
             m_globalSettingsProvider->addPage<MinecraftPage>();
             m_globalSettingsProvider->addPage<JavaPage>();
@@ -1246,14 +1264,8 @@ bool Application::createSetupWizard()
         if (!validIcons)
             settings()->set("IconTheme", QString("pe_colored"));
         if (!validWidgets) {
-#if defined(Q_OS_WIN32) && QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-            const QString style =
-                QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark ? QStringLiteral("dark") : QStringLiteral("bright");
-#else
-            const QString style = QStringLiteral("system");
-#endif
-
-            settings()->set("ApplicationTheme", style);
+            // ITN: default theme
+            settings()->set("ApplicationTheme", QStringLiteral("itn"));
         }
 
         m_themeManager->applyCurrentlySelectedTheme(true);
@@ -1511,7 +1523,8 @@ JavaInstallList* Application::javalist()
 
 QIcon Application::logo()
 {
-    return QIcon(":/" + BuildConfig.LAUNCHER_SVGFILENAME);
+    // ITN: use the ITN logo
+    return QIcon(":/itn/logo");
 }
 
 bool Application::openJsonEditor(const QString& filename)
@@ -1889,6 +1902,16 @@ QString Application::getMSAClientID()
     }
 
     return BuildConfig.MSA_CLIENT_ID;
+}
+
+QString Application::getElyClientID()
+{
+    QString clientIDOverride = m_settings->get("ElyClientIDOverride").toString();
+    if (!clientIDOverride.isEmpty()) {
+        return clientIDOverride;
+    }
+
+    return BuildConfig.ELY_CLIENT_ID;
 }
 
 QString Application::getFlameAPIKey()

@@ -186,8 +186,17 @@ void ModrinthCreationTask::createInstance()
         // Create a list of overrides in "overrides.txt" inside mrpack/
         Override::createOverrides("overrides", parentFolder, overridePath);
 
-        // Apply the overrides
-        if (!FS::move(overridePath, mcPath)) {
+        // Apply the overrides (merge if minecraft/ already exists from a partial run)
+        bool applied = false;
+        if (QFile::exists(mcPath)) {
+            applied = FS::overrideFolder(mcPath, overridePath);
+            if (applied) {
+                FS::deletePath(overridePath);
+            }
+        } else {
+            applied = FS::move(overridePath, mcPath);
+        }
+        if (!applied) {
             emitFailed(tr("Could not rename the overrides folder:\n") + "overrides");
             return;
         }

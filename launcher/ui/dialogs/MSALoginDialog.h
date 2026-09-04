@@ -34,7 +34,7 @@ class MSALoginDialog : public QDialog {
     static MinecraftAccountPtr newAccount(QWidget* parent);
     int exec() override;
 
-   private:
+   protected:
     explicit MSALoginDialog(QWidget* parent = 0);
 
    protected slots:
@@ -44,9 +44,13 @@ class MSALoginDialog : public QDialog {
     void authorizeWithBrowser(const QUrl& url);
     void authorizeWithBrowserWithExtra(QString url, QString code, int expiresIn);
 
-   private:
+   protected:
     Ui::MSALoginDialog* ui;
     MinecraftAccountPtr m_account;
+    AccountType m_accountType = AccountType::MSA;
+    QString m_linkUrl = "https://www.microsoft.com/link";
+
+   private:
     shared_qobject_ptr<AuthFlow> m_devicecode_task;
     shared_qobject_ptr<AuthFlow> m_authflow_task;
 

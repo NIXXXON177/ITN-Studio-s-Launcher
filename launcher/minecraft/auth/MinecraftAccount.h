@@ -84,6 +84,7 @@ class MinecraftAccount : public QObject, public Usable {
     explicit MinecraftAccount(QObject* parent = 0);
 
     static MinecraftAccountPtr createBlankMSA();
+    static MinecraftAccountPtr createBlank(const AccountType type);
 
     static MinecraftAccountPtr createOffline(const QString& username);
 
@@ -116,7 +117,8 @@ class MinecraftAccount : public QObject, public Usable {
 
     AccountType accountType() const noexcept { return data.type; }
 
-    bool ownsMinecraft() const { return data.type != AccountType::Offline && data.minecraftEntitlement.ownsMinecraft; }
+    // ITN: Ely.by accounts bypass the Mojang ownership check (like in ElyPrismLauncher)
+    bool ownsMinecraft() const { return data.type != AccountType::MSA || data.minecraftEntitlement.ownsMinecraft; }
 
     bool hasProfile() const { return data.profileId().size() != 0; }
 
@@ -125,6 +127,9 @@ class MinecraftAccount : public QObject, public Usable {
         switch (data.type) {
             case AccountType::MSA: {
                 return "msa";
+            } break;
+            case AccountType::Ely: {
+                return "msa";  // required for chat signing
             } break;
             case AccountType::Offline: {
                 return "offline";

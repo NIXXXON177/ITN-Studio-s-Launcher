@@ -39,6 +39,7 @@
 
 #include <QDebug>
 #include <QKeyEvent>
+#include <QUrl>
 #include <limits>
 
 #include "tasks/Task.h"
@@ -233,32 +234,56 @@ void ProgressDialog::addTaskProgress(TaskStepProgress const& progress)
 void ProgressDialog::changeStepProgress(TaskStepProgress const& task_progress)
 {
     m_is_multi_step = true;
-    if (ui->taskProgressScrollArea->isHidden()) {
-        ui->taskProgressScrollArea->setHidden(false);
+    // ITN: no per-file bars with URLs, show a compact summary instead
+    updateITNSummary(task_progress);
+}
+
+void ProgressDialog::updateITNSummary(TaskStepProgress const& task_progress)
+{
+    // short file name instead of full URL
+    QString name = task_progress.status;
+    if (name.contains("://")) {
+        QUrl url(name.section('\n', 0, 0).trimmed());
+        if (!url.fileName().isEmpty()) {
+            name = url.fileName();
+        }
+    }
+    if (name.length() > 60) {
+        name = name.left(57) + "...";
+    }
+    // details from downloads look like "12,4 MiB / 45,2 MiB\n3,1 MiB /s (10 s)"
+    QString sizes;
+    QString speed;
+    const QStringList lines = task_progress.details.split('\n');
+    if (!lines.isEmpty()) {
+        sizes = lines.value(0).trimmed();
+    }
+    if (lines.size() > 1) {
+        speed = lines.value(1).trimmed();
+    }
+    QStringList parts;
+    if (!name.isEmpty()) {
+        parts << tr("Файл: %1").arg(name);
+    }
+    if (!sizes.isEmpty()) {
+        parts << sizes;
+    }
+    if (!speed.isEmpty()) {
+        parts << tr("Скорость: %1").arg(speed);
+    }
+    if (!parts.isEmpty()) {
+        ui->globalStatusDetailsLabel->setText(parts.join(" • "));
+        ui->globalStatusDetailsLabel->adjustSize();
         updateSize();
     }
-
-    if (!taskProgress.contains(task_progress.uid))
-        addTaskProgress(task_progress);
-    auto task_bar = taskProgress.value(task_progress.uid);
-
-    auto const [mapped_current, mapped_total] = map_int_zero_max<qint64>(task_progress.current, task_progress.total, 0);
-    if (task_progress.total <= 0) {
-        task_bar->setRange(0, 0);
-    } else {
-        task_bar->setRange(0, mapped_total);
-    }
-
-    task_bar->setValue(mapped_current);
-    task_bar->setStatus(task_progress.status);
-    task_bar->setDetails(task_progress.details);
-    task_bar->setVisible(!task_progress.isDone());
 }
 
 void ProgressDialog::changeProgress(qint64 current, qint64 total)
 {
     ui->globalProgressBar->setMaximum(total);
     ui->globalProgressBar->setValue(current);
+    // ITN: show file counter on the bar
+    ui->globalProgressBar->setFormat(tr("%1 из %2").arg(current).arg(total));
 }
 
 void ProgressDialog::keyPressEvent(QKeyEvent* e)

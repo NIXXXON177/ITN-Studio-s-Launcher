@@ -88,6 +88,7 @@ class ProgressDialog : public QDialog {
    private:
     bool handleImmediateResult(QDialog::DialogCode& result);
     void addTaskProgress(TaskStepProgress const& progress);
+    void updateITNSummary(TaskStepProgress const& task_progress);
 
    private:
     Ui::ProgressDialog* ui;

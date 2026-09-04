@@ -63,8 +63,13 @@ class MSADeviceCodeStep : public AuthStep {
     void authenticateUser();
     void authenticationFinished(QByteArray* response);
 
-   private:
+   protected:
     QString m_clientId;
+    QString m_scopes = "XboxLive.SignIn XboxLive.offline_access";
+    QUrl m_deviceCodeUrl = QUrl("https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode");
+    QUrl m_tokenUrl = QUrl("https://login.microsoftonline.com/consumers/oauth2/v2.0/token");
+
+   private:
     QString m_device_code;
     bool m_is_aborted = false;
     int interval = 5;

@@ -19,6 +19,9 @@ class MinecraftProfileStep : public AuthStep {
    private slots:
     void onRequestDone(QByteArray* response);
 
+   protected:
+    QUrl m_profileUrl = QUrl("https://api.minecraftservices.com/minecraft/profile");
+
    private:
     Net::Request::Ptr m_request;
     NetJob::Ptr m_task;

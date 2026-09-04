@@ -213,7 +213,7 @@ bool LaunchController::askPlayDemo() const
     QMessageBox box(m_parentWidget);
     box.setWindowTitle(tr("Play demo?"));
     QString text = m_accountToUse
-                       ? tr("This account does not own Minecraft.\nYou need to purchase the game first to play the full version.")
+                       ? tr("This account does not own Minecraft.\nIf you do not own the game, you must use an Ely.by account.")
                        : tr("No account was selected for launch.");
     text += tr("\n\nDo you want to play the demo?");
     box.setText(text);
@@ -398,7 +398,12 @@ void LaunchController::launchInstance()
         online_mode = "online";
 
         // Prepend Server Status
-        const QStringList servers = { "login.microsoftonline.com", "session.minecraft.net", "textures.minecraft.net", "api.mojang.com" };
+        QStringList servers;
+        if (m_accountToUse && m_accountToUse->accountType() == AccountType::Ely) {
+            servers = { "ely.by", "account.ely.by", "skinsystem.ely.by" };
+        } else {
+            servers = { "login.microsoftonline.com", "session.minecraft.net", "textures.minecraft.net", "api.mojang.com" };
+        }
 
         m_launcher->prependStep(makeShared<PrintServers>(m_launcher, servers));
     } else {

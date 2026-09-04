@@ -1,0 +1,8 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/itn">
+        <file alias="banner">banner.jpg</file>
+        <file alias="banner-strip">banner-strip.jpg</file>
+        <file alias="logo">logo.png</file>
+    </qresource>
+</RCC>
