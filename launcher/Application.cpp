@@ -100,6 +100,7 @@
 #include <QStringList>
 #include <QStringLiteral>
 #include <QStyleFactory>
+#include <QTimer>
 #include <QTranslator>
 #include <QWindow>
 
@@ -111,6 +112,7 @@
 #include "net/HttpMetaCache.h"
 
 #include "updater/ExternalUpdater.h"
+#include "updater/ITNAutoUpdater.h"
 
 #include "tools/JProfiler.h"
 #include "tools/JVisualVM.h"
@@ -1408,6 +1410,13 @@ void Application::performMainStartupAction()
         m_updater.reset(new PrismExternalUpdater(m_mainWindow, m_rootPath, m_dataPath));
 #endif
         qDebug() << "<> Updater started.";
+    }
+
+    // ITN: always check GitHub Releases for portable updates (works without *_updater.exe)
+    {
+        auto* itnUpdater = new ITNAutoUpdater(this);
+        connect(itnUpdater, &ITNAutoUpdater::statusMessage, this, [](const QString& msg) { qInfo() << qPrintable(msg); });
+        QTimer::singleShot(2500, itnUpdater, [itnUpdater] { itnUpdater->checkForUpdates(true); });
     }
 
     {  // delete instances tmp dirctory

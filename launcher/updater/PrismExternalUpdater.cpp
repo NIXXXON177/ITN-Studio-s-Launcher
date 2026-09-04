@@ -327,7 +327,14 @@ void PrismExternalUpdater::offerUpdate(const QString& versionName,
 
     UpdateAvailableDialog dlg(BuildConfig.printableVersionString(), versionName, releaseNotes);
 
-    auto result = dlg.exec();
+    // ITN: auto-download/install when update was found in background
+    int result;
+    if (!triggeredByUser) {
+        result = UpdateAvailableDialog::Install;
+        qDebug() << "ITN: auto-accepting update install for" << versionTag;
+    } else {
+        result = dlg.exec();
+    }
     qDebug() << "offer dlg result" << result;
 
     priv->settings->beginGroup("skip");

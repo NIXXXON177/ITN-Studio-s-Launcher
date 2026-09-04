@@ -183,6 +183,11 @@ set(PRISM_UPDATE_SOURCES
     updater/PrismExternalUpdater.cpp
 )
 
+set(ITN_UPDATE_SOURCES
+    updater/ITNAutoUpdater.h
+    updater/ITNAutoUpdater.cpp
+)
+
 # Backend for the news bar... there's usually no news.
 set(NEWS_SOURCES
     # News System
@@ -762,6 +767,7 @@ set(LOGIC_SOURCES
     ${NET_SOURCES}
     ${LAUNCH_SOURCES}
     ${UPDATE_SOURCES}
+    ${ITN_UPDATE_SOURCES}
     ${NEWS_SOURCES}
     ${MINECRAFT_SOURCES}
     ${SCREENSHOTS_SOURCES}

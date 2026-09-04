@@ -12,7 +12,7 @@ set(Launcher_CommonName "ITNLauncher")
 set(Launcher_DisplayName "ITN Launcher")
 set(Launcher_AppID "org.prismlauncher.PrismLauncher")
 set(Launcher_Domain "prismlauncher.org")
-set(Launcher_Git "https://github.com/PrismLauncher/PrismLauncher")
+set(Launcher_Git "https://github.com/NIXXXON177/ITN-Studio-s-Launcher")
 
 set(Launcher_Name "${Launcher_CommonName}" PARENT_SCOPE)
 set(Launcher_DisplayName "${Launcher_DisplayName}" PARENT_SCOPE)

@@ -680,7 +680,7 @@ QList<GitHubReleaseAsset> PrismUpdaterApp::validReleaseArtifacts(const GitHubRel
         if (!for_platform) {
             qDebug() << "Rejecting" << asset.name << "because platforms do not match";
         }
-        bool for_portable = asset_name.contains("portable");
+        bool for_portable = asset_name.contains("portable") || asset_name.contains("itnlauncher");
         if (for_platform && asset_name.contains("legacy") && !platform.contains("legacy")) {
             qDebug() << "Rejecting" << asset.name << "because platforms do not match";
             for_platform = false;
