@@ -18,14 +18,13 @@
 
 ## Автообновление
 
-Лаунчер при старте проверяет [GitHub Releases](https://github.com/NIXXXON177/ITN-Studio-s-Launcher/releases):
+При запуске сначала открывается экран проверки (как у Majestic):
 
-1. Сравнивает локальный `itn-version.txt` с тегом latest
-2. Скачивает `ITNLauncher-windows*.zip`
-3. Ставит поверх, **сохраняя** `accounts.json`, сейвы и скриншоты
-4. Перезапускается
+1. Проверка / скачивание / установка **лаунчера** (GitHub Releases → `ITNLauncher-windows*.zip`)
+2. Проверка / скачивание **игры** (asset `ITN-Modded*.mrpack` в том же релизе, если есть)
+3. После успеха — основной интерфейс (с лёгкими звуками наведения на кнопки)
 
-Пока нет свежей пересборки `ITNLauncher.exe`, можно вручную: `ITN-update.ps1` в portable-папке.
+Локальные метки: `itn-version.txt` (лаунчер), `itn-game-version.txt` (модпак). Сейвы и `accounts.json` сохраняются.
 
 ## Сборка из исходников
 

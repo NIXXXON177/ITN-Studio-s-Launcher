@@ -113,6 +113,8 @@
 
 #include "updater/ExternalUpdater.h"
 #include "updater/ITNAutoUpdater.h"
+#include "ui/ITNUpdateSplash.h"
+#include "ui/ITNUiAudio.h"
 
 #include "tools/JProfiler.h"
 #include "tools/JVisualVM.h"
@@ -1394,6 +1396,49 @@ void Application::performMainStartupAction()
         }
     }
     if (!m_mainWindow) {
+        // ITN: Majestic-style gate — check/update launcher+game before main UI
+        bool restartingForUpdate = false;
+        {
+            auto* splash = new ITNUpdateSplash(nullptr);
+            splash->setWindowTitle(applicationDisplayName());
+            splash->show();
+            splash->raise();
+
+            auto* itnUpdater = new ITNAutoUpdater(this);
+            connect(itnUpdater, &ITNAutoUpdater::phaseChanged, splash,
+                    [splash](const QString& title, const QString& detail) { splash->setPhase(title, detail); });
+            connect(itnUpdater, &ITNAutoUpdater::progressChanged, splash, &ITNUpdateSplash::setProgress);
+            connect(itnUpdater, &ITNAutoUpdater::statusMessage, this, [](const QString& msg) { qInfo() << qPrintable(msg); });
+            connect(itnUpdater, &ITNAutoUpdater::startupFinished, splash,
+                    [splash, &restartingForUpdate](bool restarted) {
+                        restartingForUpdate = restarted;
+                        if (restarted) {
+                            splash->setPhase(QObject::tr("Перезапуск…"), {});
+                            // Quit is already scheduled; close splash without fade delay
+                            splash->reject();
+                            return;
+                        }
+                        ITNUiAudio::instance()->playSuccess();
+                        splash->finishAndAccept();
+                    });
+
+            // Safety: never block forever if network hangs
+            QTimer::singleShot(90000, splash, [splash] {
+                if (splash->isVisible()) {
+                    splash->setPhase(QObject::tr("Продолжаем без обновления"), QObject::tr("Таймаут проверки"));
+                    splash->finishAndAccept();
+                }
+            });
+
+            QTimer::singleShot(180, itnUpdater, [itnUpdater] { itnUpdater->runStartupSequence(); });
+            splash->exec();
+            splash->deleteLater();
+        }
+
+        if (restartingForUpdate || closingDown()) {
+            return;
+        }
+
         // normal main window
         showMainWindow(false);
         qDebug() << "<> Main window shown.";
@@ -1410,13 +1455,6 @@ void Application::performMainStartupAction()
         m_updater.reset(new PrismExternalUpdater(m_mainWindow, m_rootPath, m_dataPath));
 #endif
         qDebug() << "<> Updater started.";
-    }
-
-    // ITN: always check GitHub Releases for portable updates (works without *_updater.exe)
-    {
-        auto* itnUpdater = new ITNAutoUpdater(this);
-        connect(itnUpdater, &ITNAutoUpdater::statusMessage, this, [](const QString& msg) { qInfo() << qPrintable(msg); });
-        QTimer::singleShot(2500, itnUpdater, [itnUpdater] { itnUpdater->checkForUpdates(true); });
     }
 
     {  // delete instances tmp dirctory

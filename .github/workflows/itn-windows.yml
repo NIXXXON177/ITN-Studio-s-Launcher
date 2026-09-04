@@ -1,0 +1,67 @@
+name: ITN Windows Portable
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-type:
+        description: Type of build
+        type: choice
+        options:
+          - Release
+          - Debug
+        default: Release
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-windows:
+    name: Build Windows MSVC (ITN)
+    runs-on: windows-2022
+    env:
+      ARTIFACT_NAME: Windows-MSVC-Qt6
+      BUILD_PLATFORM: official
+      BUILD_TYPE: ${{ inputs.build-type || 'Release' }}
+      CMAKE_PRESET: windows_msvc
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Setup dependencies
+        id: setup-dependencies
+        uses: ./.github/actions/setup-dependencies
+        with:
+          build-type: ${{ env.BUILD_TYPE }}
+          artifact-name: Windows-MSVC
+          vcvars-arch: amd64
+          qt-version: 6.10.2
+
+      - name: Configure project
+        run: |
+          cmake --preset "$env:CMAKE_PRESET" -D VCPKG_HOST_TRIPLET="$env:VCPKG_TRIPLET" -D VCPKG_TARGET_TRIPLET="$env:VCPKG_TRIPLET" -D Launcher_BUILD_ARTIFACT=windows
+
+      - name: Run build
+        run: |
+          cmake --build --preset "$env:CMAKE_PRESET" --config "$env:BUILD_TYPE"
+
+      - name: Package (Windows)
+        uses: ./.github/actions/package/windows
+        with:
+          version: itn-${{ github.sha }}
+          build-type: ${{ steps.setup-dependencies.outputs.build-type }}
+          artifact-name: Windows-MSVC
+
+      - name: Upload ITN artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ITNLauncher-Windows-MSVC
+          path: |
+            PrismLauncher-Windows-MSVC*.zip
+            ITNLauncher*.zip
+            *.zip
+          if-no-files-found: warn
+          retention-days: 14

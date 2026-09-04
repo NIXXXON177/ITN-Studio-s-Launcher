@@ -188,6 +188,15 @@ set(ITN_UPDATE_SOURCES
     updater/ITNAutoUpdater.cpp
 )
 
+set(ITN_UI_SOURCES
+    ui/ITNUpdateSplash.h
+    ui/ITNUpdateSplash.cpp
+    ui/ITNUiAudio.h
+    ui/ITNUiAudio.cpp
+    ui/ITNHoverFilter.h
+    ui/ITNHoverFilter.cpp
+)
+
 # Backend for the news bar... there's usually no news.
 set(NEWS_SOURCES
     # News System
@@ -768,6 +777,7 @@ set(LOGIC_SOURCES
     ${LAUNCH_SOURCES}
     ${UPDATE_SOURCES}
     ${ITN_UPDATE_SOURCES}
+    ${ITN_UI_SOURCES}
     ${NEWS_SOURCES}
     ${MINECRAFT_SOURCES}
     ${SCREENSHOTS_SOURCES}

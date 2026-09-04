@@ -4,5 +4,8 @@
         <file alias="banner">banner.jpg</file>
         <file alias="banner-strip">banner-strip.jpg</file>
         <file alias="logo">logo.png</file>
+        <file alias="ui-hover">ui-hover.wav</file>
+        <file alias="ui-click">ui-click.wav</file>
+        <file alias="ui-success">ui-success.wav</file>
     </qresource>
 </RCC>
