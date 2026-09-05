@@ -1,12 +1,12 @@
 {
   "launcher": {
-    "version": "1.0.1",
-    "url": "https://github.com/NIXXXON177/ITN-Studio-s-Launcher/releases/download/v1.0.1/ITNLauncher-windows.zip",
+    "version": "1.2.0",
+    "url": "https://github.com/NIXXXON177/ITN-Studio-s-Launcher/releases/download/v1.2.0/ITNLauncher-windows.zip",
     "sha1": ""
   },
   "modpack": {
     "version": "1.0.6",
-    "url": "https://github.com/NIXXXON177/ITN-Studio-s-Launcher/releases/download/v1.0.1/ITN-Modded-1.0.6.mrpack",
+    "url": "https://github.com/NIXXXON177/ITN-Studio-s-Launcher/releases/download/v1.2.0/ITN-Modded-1.0.6.mrpack",
     "mc": "1.20.1"
   }
 }
