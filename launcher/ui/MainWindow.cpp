@@ -165,7 +165,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     // ITN: auto-import the bundled modpack on first run
     QTimer::singleShot(0, this, [this] { checkITNAutoImport(); });
 
-    // ITN: soft hover/click sounds on buttons (Majestic-style)
+    // ITN: soft hover/click sounds on buttons
     qApp->installEventFilter(new ITNHoverFilter(this));
 
     setWindowIcon(APPLICATION->logo());

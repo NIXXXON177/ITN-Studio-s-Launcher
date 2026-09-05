@@ -53,7 +53,7 @@ ProgressDialog::ProgressDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Pr
 {
     ui->setupUi(this);
 
-    // ITN: compact frameless progress card (Majestic / Kutuzovsky-like)
+    // ITN: compact frameless progress card
     setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog);
     setModal(true);
     setFixedSize(300, 340);

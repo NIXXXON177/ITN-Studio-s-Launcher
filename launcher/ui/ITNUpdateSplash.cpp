@@ -14,7 +14,7 @@ ITNUpdateSplash::ITNUpdateSplash(QWidget* parent) : QDialog(parent)
 {
     setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog);
     setModal(true);
-    // Compact Majestic / PineCraft updater window
+    // Compact ITN updater window
     setFixedSize(464, 358);
     setAttribute(Qt::WA_TranslucentBackground, false);
 

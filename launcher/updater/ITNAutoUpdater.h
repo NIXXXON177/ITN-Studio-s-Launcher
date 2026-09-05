@@ -20,7 +20,7 @@ class ITNAutoUpdater : public QObject {
     void checkForUpdates(bool silent = true);
 
     /**
-     * Majestic-style startup: check launcher, then game pack, emit UI signals.
+     * Startup flow: check launcher, then game pack, emit UI signals.
      * Call after splash is visible. Emits startupFinished when UI can open.
      */
     void runStartupSequence();

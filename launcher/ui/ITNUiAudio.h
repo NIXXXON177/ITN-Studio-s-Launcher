@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QString>
 
-/** Soft UI sounds (hover / click) — Majestic-style feedback without Qt Multimedia. */
+/** Soft UI sounds (hover / click) — feedback without Qt Multimedia. */
 class ITNUiAudio : public QObject {
     Q_OBJECT
    public:

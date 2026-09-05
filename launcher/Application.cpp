@@ -1393,7 +1393,7 @@ void Application::performMainStartupAction()
         }
     }
     if (!m_mainWindow) {
-        // ITN: Majestic-style gate — check/update launcher+game before main UI
+        // ITN: startup gate — check/update launcher+game before main UI
         bool restartingForUpdate = false;
         {
             auto* splash = new ITNUpdateSplash(nullptr);

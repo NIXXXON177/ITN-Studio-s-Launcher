@@ -4,7 +4,7 @@
 #include <QEvent>
 #include <QObject>
 
-/** Plays soft hover/click sounds on buttons and tool buttons (Majestic-style). */
+/** Plays soft hover/click sounds on buttons and tool buttons. */
 class ITNHoverFilter : public QObject {
     Q_OBJECT
    public:

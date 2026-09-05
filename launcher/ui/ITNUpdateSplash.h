@@ -10,7 +10,7 @@
 #include <QTimer>
 
 /**
- * Majestic-style startup gate: full-bleed brand screen with status + progress
+ * Startup gate: full-bleed brand screen with status + progress
  * while launcher / game updates are checked and applied.
  */
 class ITNUpdateSplash : public QDialog {
