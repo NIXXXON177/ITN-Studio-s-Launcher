@@ -1,26 +1,15 @@
+# Disabled for ITN fork: Winget publish needs PrismLauncher.PrismLauncher + WINGET_TOKEN.
 name: Publish
 
 on:
-  release:
-    types: [ released ]
+  workflow_dispatch:
 
 permissions: {}
 
 jobs:
-  winget:
-    name: Winget
-
-    permissions:
-      contents: read
-
-    runs-on: ubuntu-slim
-
+  skipped:
+    name: Skipped (Winget not configured for ITN)
+    runs-on: ubuntu-latest
     steps:
-      - name: Publish on Winget
-        # @Octol1ttle: Pinned to a commit because no release has been published that works on ubuntu-slim
-        uses: vedantmgoyal2009/winget-releaser@7bd472be23763def6e16bd06cc8b1cdfab0e2fd5 # docs: add description to inputs (#335)
-        with:
-          identifier: PrismLauncher.PrismLauncher
-          version: ${{ github.event.release.tag_name }}
-          installers-regex: 'PrismLauncher-Windows-MSVC(:?-arm64|-Legacy)?-Setup-.+\.exe$'
-          token: ${{ secrets.WINGET_TOKEN }}
+      - name: Notice
+        run: echo "Winget publish is disabled on this fork."

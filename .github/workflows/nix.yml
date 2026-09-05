@@ -9,8 +9,7 @@ on:
     branches:
       - "develop"
       - "release-*"
-    tags:
-      - "*"
+    # tags removed for ITN: tagging a release must not run Nix deploy
     paths:
       # File types
       - "**.cpp"
