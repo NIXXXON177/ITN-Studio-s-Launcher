@@ -1305,11 +1305,8 @@ bool Application::createSetupWizard()
 
 bool Application::updaterEnabled()
 {
-#if defined(Q_OS_MAC)
-    return BuildConfig.UPDATER_ENABLED;
-#else
-    return BuildConfig.UPDATER_ENABLED && QFileInfo(FS::PathCombine(m_rootPath, updaterBinaryName())).isFile();
-#endif
+    // ITN: updates via ITNAutoUpdater (GitHub ZIP). Prism *_updater.exe expects prismlauncher.exe and breaks portable.
+    return false;
 }
 
 QString Application::updaterBinaryName()
