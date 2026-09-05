@@ -34,11 +34,14 @@
  */
 
 #include "ProgressDialog.h"
-#include <QPoint>
 #include "ui_ProgressDialog.h"
 
 #include <QDebug>
+#include <QFont>
 #include <QKeyEvent>
+#include <QPainter>
+#include <QPaintEvent>
+#include <QPixmap>
 #include <QUrl>
 #include <limits>
 
@@ -46,29 +49,104 @@
 
 #include "ui/widgets/SubTaskProgressBar.h"
 
-// map a value in a numeric range of an arbitrary type to between 0 and INT_MAX
-// for getting the best precision out of the qt progress bar
-template <typename T, std::enable_if_t<std::is_arithmetic_v<T>, bool> = true>
-std::tuple<int, int> map_int_zero_max(T current, T range_max, T range_min)
-{
-    int int_max = std::numeric_limits<int>::max();
-
-    auto type_range = range_max - range_min;
-    double percentage = static_cast<double>(current - range_min) / static_cast<double>(type_range);
-    int mapped_current = percentage * int_max;
-
-    return { mapped_current, int_max };
-}
-
 ProgressDialog::ProgressDialog(QWidget* parent) : QDialog(parent), ui(new Ui::ProgressDialog)
 {
     ui->setupUi(this);
-    ui->taskProgressScrollArea->setHidden(true);
-    this->setWindowFlags(this->windowFlags() & ~Qt::WindowContextHelpButtonHint);
-    setAttribute(Qt::WidgetAttribute::WA_QuitOnClose, true);
+
+    // ITN: compact frameless progress card (Majestic / Kutuzovsky-like)
+    setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog);
+    setModal(true);
+    setFixedSize(300, 340);
+    setAttribute(Qt::WA_QuitOnClose, true);
+    setAttribute(Qt::WA_TranslucentBackground, true);
+    setSizeGripEnabled(false);
+
+    ui->taskProgressScrollArea->setVisible(false);
+    ui->taskProgressScrollArea->setMaximumHeight(0);
+
+    QPixmap logo(QStringLiteral(":/itn/logo"));
+    if (!logo.isNull()) {
+        ui->logoLabel->setPixmap(logo.scaled(120, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
+
+    {
+        QFont f = ui->brandLabel->font();
+        f.setPointSize(16);
+        f.setBold(true);
+        f.setLetterSpacing(QFont::AbsoluteSpacing, 1.5);
+        ui->brandLabel->setFont(f);
+        ui->brandLabel->setStyleSheet(QStringLiteral("color: #e8f2ea;"));
+    }
+    {
+        QFont f = ui->globalStatusLabel->font();
+        f.setPointSize(11);
+        f.setBold(true);
+        ui->globalStatusLabel->setFont(f);
+        ui->globalStatusLabel->setStyleSheet(QStringLiteral("color: #c9d8cc;"));
+    }
+    const QString mute = QStringLiteral("color: #7a9080; font-size: 11px;");
+    ui->remainingCaptionLabel->setStyleSheet(mute);
+    ui->globalStatusDetailsLabel->setStyleSheet(mute);
+    ui->sizeLabel->setStyleSheet(mute);
+    ui->speedLabel->setStyleSheet(mute);
+
+    ui->globalProgressBar->setTextVisible(false);
+    ui->globalProgressBar->setFixedHeight(6);
+    ui->globalProgressBar->setStyleSheet(QStringLiteral(
+        "QProgressBar {"
+        "  background: #1a2420; border: none; border-radius: 3px;"
+        "}"
+        "QProgressBar::chunk {"
+        "  background: qlineargradient(x1:0,y1:0,x2:1,y2:0,"
+        "    stop:0 #f0b429, stop:1 #35c26e);"
+        "  border-radius: 3px;"
+        "}"));
+
+    ui->skipButton->setCursor(Qt::PointingHandCursor);
+    ui->skipButton->setStyleSheet(QStringLiteral(
+        "QPushButton {"
+        "  background: #1a2420; color: #e8f2ea; border: 1px solid #2c4434;"
+        "  border-radius: 8px; font-weight: 800; letter-spacing: 1px;"
+        "}"
+        "QPushButton:hover { background: #223028; border-color: #35c26e; }"
+        "QPushButton:pressed { background: #13211a; }"
+        "QPushButton:disabled { color: #5c7263; border-color: #1e2f25; }"));
+
+    setStyleSheet(QStringLiteral(
+        "ProgressDialog, QDialog#ProgressDialog { background: transparent; }"
+        "QLabel { background: transparent; }"));
+
     changeProgress(0, 100);
+    setSkipButton(true, tr("ОТМЕНА"));
     updateSize(true);
-    setSkipButton(false);
+}
+
+void ProgressDialog::paintEvent(QPaintEvent* event)
+{
+    Q_UNUSED(event);
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+
+    QLinearGradient bg(0, 0, 0, height());
+    bg.setColorAt(0.0, QColor(17, 25, 22));
+    bg.setColorAt(1.0, QColor(10, 17, 13));
+    p.setPen(Qt::NoPen);
+    p.setBrush(bg);
+    p.drawRoundedRect(rect(), 12, 12);
+
+    {
+        QRadialGradient g(width() * 0.5, 0, width() * 0.7);
+        g.setColorAt(0.0, QColor(53, 194, 110, 28));
+        g.setColorAt(1.0, QColor(53, 194, 110, 0));
+        p.setBrush(g);
+        p.drawRoundedRect(rect(), 12, 12);
+    }
+
+    QPen pen(QColor(44, 68, 52, 210));
+    pen.setWidth(1);
+    p.setPen(pen);
+    p.setBrush(Qt::NoBrush);
+    p.drawRoundedRect(rect().adjusted(0, 0, -1, -1), 12, 12);
 }
 
 void ProgressDialog::setSkipButton(bool present, QString label)
@@ -77,15 +155,15 @@ void ProgressDialog::setSkipButton(bool present, QString label)
     ui->skipButton->setDefault(false);
     ui->skipButton->setFocusPolicy(Qt::ClickFocus);
     ui->skipButton->setEnabled(present);
-    ui->skipButton->setVisible(present);
-    ui->skipButton->setText(label);
+    ui->skipButton->setVisible(true);  // always show compact cancel slot
+    ui->skipButton->setText(label.isEmpty() ? tr("ОТМЕНА") : label.toUpper());
     updateSize();
 }
 
 void ProgressDialog::on_skipButton_clicked(bool checked)
 {
     Q_UNUSED(checked);
-    if (ui->skipButton->isEnabled())  // prevent other triggers from aborting
+    if (ui->skipButton->isEnabled() && m_task)
         m_task->abort();
 }
 
@@ -99,30 +177,19 @@ ProgressDialog::~ProgressDialog()
 
 void ProgressDialog::updateSize(bool recenterParent)
 {
-    QSize lastSize = this->size();
     QPoint lastPos = this->pos();
-    int minHeight = ui->globalStatusDetailsLabel->minimumSize().height() + (ui->verticalLayout->spacing() * 2);
-    minHeight += ui->globalProgressBar->minimumSize().height() + ui->verticalLayout->spacing();
-    if (!ui->taskProgressScrollArea->isHidden())
-        minHeight += ui->taskProgressScrollArea->minimumSizeHint().height() + ui->verticalLayout->spacing();
-    if (ui->skipButton->isVisible())
-        minHeight += ui->skipButton->height() + ui->verticalLayout->spacing();
-    minHeight = std::max(minHeight, 60);
-    QSize minSize = QSize(480, minHeight);
+    QSize lastSize = this->size();
 
-    setMinimumSize(minSize);
-    adjustSize();
+    // Keep the card compact and fixed — no growing with details text
+    setFixedSize(300, 340);
 
-    QSize newSize = this->size();
-    // if the current window is a different size
     auto parent = this->parentWidget();
     if (recenterParent && parent) {
-        auto newX = std::max(0, parent->x() + ((parent->width() - newSize.width()) / 2));
-        auto newY = std::max(0, parent->y() + ((parent->height() - newSize.height()) / 2));
+        auto newX = std::max(0, parent->x() + ((parent->width() - width()) / 2));
+        auto newY = std::max(0, parent->y() + ((parent->height() - height()) / 2));
         this->move(newX, newY);
-    } else if (lastSize != newSize) {
-        // center on old position after resize
-        QSize sizeDiff = lastSize - newSize;  // last size was smaller, the results should be negative
+    } else if (lastSize != size()) {
+        QSize sizeDiff = lastSize - size();
         auto newX = std::max(0, lastPos.x() + (sizeDiff.width() / 2));
         auto newY = std::max(0, lastPos.y() + (sizeDiff.height() / 2));
         this->move(newX, newY);
@@ -143,7 +210,6 @@ int ProgressDialog::execWithTask(Task* task)
         return result;
     }
 
-    // Connect signals.
     this->m_taskConnections.push_back(connect(task, &Task::started, this, &ProgressDialog::onTaskStarted));
     this->m_taskConnections.push_back(connect(task, &Task::failed, this, &ProgressDialog::onTaskFailed));
     this->m_taskConnections.push_back(connect(task, &Task::succeeded, this, &ProgressDialog::onTaskSucceeded));
@@ -153,13 +219,14 @@ int ProgressDialog::execWithTask(Task* task)
     this->m_taskConnections.push_back(connect(task, &Task::progress, this, &ProgressDialog::changeProgress));
     this->m_taskConnections.push_back(connect(task, &Task::aborted, this, &ProgressDialog::hide));
     this->m_taskConnections.push_back(connect(task, &Task::abortStatusChanged, ui->skipButton, &QPushButton::setEnabled));
-    this->m_taskConnections.push_back(connect(task, &Task::abortButtonTextChanged, ui->skipButton, &QPushButton::setText));
+    this->m_taskConnections.push_back(connect(task, &Task::abortButtonTextChanged, this, [this](const QString& text) {
+        ui->skipButton->setText(text.isEmpty() ? tr("ОТМЕНА") : text.toUpper());
+    }));
 
     m_is_multi_step = task->isMultiStep();
-    ui->taskProgressScrollArea->setHidden(!m_is_multi_step);
-    updateSize();
+    ui->taskProgressScrollArea->setVisible(false);
+    updateSize(true);
 
-    // It's a good idea to start the task after we entered the dialog's event loop :^)
     if (!task->isRunning()) {
         QMetaObject::invokeMethod(task, &Task::start, Qt::QueuedConnection);
     } else {
@@ -170,7 +237,6 @@ int ProgressDialog::execWithTask(Task* task)
     return QDialog::exec();
 }
 
-// TODO: only provide the unique_ptr overloads
 int ProgressDialog::execWithTask(std::unique_ptr<Task>&& task)
 {
     connect(this, &ProgressDialog::destroyed, task.get(), &Task::deleteLater);
@@ -216,74 +282,79 @@ void ProgressDialog::onTaskSucceeded()
 
 void ProgressDialog::changeStatus([[maybe_unused]] const QString& status)
 {
-    ui->globalStatusLabel->setText(m_task->getStatus());
-    ui->globalStatusLabel->adjustSize();
-    ui->globalStatusDetailsLabel->setText(m_task->getDetails());
-    ui->globalStatusDetailsLabel->adjustSize();
+    QString title = m_task->getStatus();
+    if (title.length() > 48) {
+        title = title.left(45) + QStringLiteral("…");
+    }
+    ui->globalStatusLabel->setText(title);
 
-    updateSize();
+    // Prefer structured details from last step summary; fall back to task details
+    QString details = m_task->getDetails().trimmed();
+    if (!details.isEmpty() && !details.contains(QLatin1String("://"))) {
+        if (details.length() > 36) {
+            details = details.left(33) + QStringLiteral("…");
+        }
+        ui->globalStatusDetailsLabel->setText(details);
+    }
 }
 
 void ProgressDialog::addTaskProgress(TaskStepProgress const& progress)
 {
-    SubTaskProgressBar* task_bar = new SubTaskProgressBar(this);
-    taskProgress.insert(progress.uid, task_bar);
-    ui->taskProgressLayout->addWidget(task_bar);
+    Q_UNUSED(progress);
+    // ITN: compact card — no per-file sub-bars
 }
 
 void ProgressDialog::changeStepProgress(TaskStepProgress const& task_progress)
 {
     m_is_multi_step = true;
-    // ITN: no per-file bars with URLs, show a compact summary instead
     updateITNSummary(task_progress);
 }
 
 void ProgressDialog::updateITNSummary(TaskStepProgress const& task_progress)
 {
-    // short file name instead of full URL
     QString name = task_progress.status;
-    if (name.contains("://")) {
-        QUrl url(name.section('\n', 0, 0).trimmed());
+    if (name.contains(QLatin1String("://"))) {
+        QUrl url(name.section(QLatin1Char('\n'), 0, 0).trimmed());
         if (!url.fileName().isEmpty()) {
             name = url.fileName();
         }
     }
-    if (name.length() > 60) {
-        name = name.left(57) + "...";
+    if (name.length() > 28) {
+        name = name.left(25) + QStringLiteral("…");
     }
-    // details from downloads look like "12,4 MiB / 45,2 MiB\n3,1 MiB /s (10 s)"
+
     QString sizes;
     QString speed;
-    const QStringList lines = task_progress.details.split('\n');
+    const QStringList lines = task_progress.details.split(QLatin1Char('\n'));
     if (!lines.isEmpty()) {
         sizes = lines.value(0).trimmed();
     }
     if (lines.size() > 1) {
         speed = lines.value(1).trimmed();
     }
-    QStringList parts;
-    if (!name.isEmpty()) {
-        parts << tr("Файл: %1").arg(name);
-    }
-    if (!sizes.isEmpty()) {
-        parts << sizes;
-    }
-    if (!speed.isEmpty()) {
-        parts << tr("Скорость: %1").arg(speed);
-    }
-    if (!parts.isEmpty()) {
-        ui->globalStatusDetailsLabel->setText(parts.join(" • "));
-        ui->globalStatusDetailsLabel->adjustSize();
-        updateSize();
-    }
+
+    ui->globalStatusDetailsLabel->setText(name.isEmpty() ? QStringLiteral("…") : name);
+    ui->sizeLabel->setText(sizes.isEmpty() ? QStringLiteral("—") : sizes);
+    ui->speedLabel->setText(speed);
 }
 
 void ProgressDialog::changeProgress(qint64 current, qint64 total)
 {
-    ui->globalProgressBar->setMaximum(total);
-    ui->globalProgressBar->setValue(current);
-    // ITN: show file counter on the bar
-    ui->globalProgressBar->setFormat(tr("%1 из %2").arg(current).arg(total));
+    if (total <= 0) {
+        ui->globalProgressBar->setRange(0, 0);  // indeterminate
+        return;
+    }
+    if (ui->globalProgressBar->maximum() == 0) {
+        ui->globalProgressBar->setRange(0, 1000);
+    }
+    ui->globalProgressBar->setMaximum(static_cast<int>(total));
+    ui->globalProgressBar->setValue(static_cast<int>(current));
+
+    // Show step counter under brand area when no file-size stats yet
+    if (ui->sizeLabel->text().isEmpty() || ui->sizeLabel->text() == QStringLiteral("—") ||
+        ui->sizeLabel->text() == QStringLiteral("0 / 0")) {
+        ui->sizeLabel->setText(tr("%1 из %2").arg(current).arg(total));
+    }
 }
 
 void ProgressDialog::keyPressEvent(QKeyEvent* e)

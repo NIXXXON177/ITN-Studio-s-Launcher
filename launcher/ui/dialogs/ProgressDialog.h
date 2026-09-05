@@ -47,6 +47,7 @@
 
 class Task;
 class SequentialTask;
+class QPaintEvent;
 
 namespace Ui {
 class ProgressDialog;
@@ -84,6 +85,7 @@ class ProgressDialog : public QDialog {
    protected:
     virtual void keyPressEvent(QKeyEvent* e);
     virtual void closeEvent(QCloseEvent* e);
+    void paintEvent(QPaintEvent* event) override;
 
    private:
     bool handleImmediateResult(QDialog::DialogCode& result);
