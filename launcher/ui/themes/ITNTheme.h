@@ -2,7 +2,7 @@
 /*
  *  ITN Launcher - Minecraft Launcher
  *
- *  ITN green theme.
+ *  ITN theme — PineCraft-inspired pine→gold gradients.
  */
 
 #pragma once

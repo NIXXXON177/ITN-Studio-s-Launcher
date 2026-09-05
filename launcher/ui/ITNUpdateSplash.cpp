@@ -4,7 +4,6 @@
 #include <QFont>
 #include <QHBoxLayout>
 #include <QPainter>
-#include <QPainterPath>
 #include <QPaintEvent>
 #include <QPixmap>
 #include <QShowEvent>
@@ -15,74 +14,76 @@ ITNUpdateSplash::ITNUpdateSplash(QWidget* parent) : QDialog(parent)
 {
     setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog);
     setModal(true);
-    setFixedSize(860, 500);
+    // Compact Majestic / PineCraft updater window
+    setFixedSize(464, 358);
     setAttribute(Qt::WA_TranslucentBackground, false);
 
     auto* root = new QVBoxLayout(this);
-    root->setContentsMargins(56, 48, 56, 44);
-    root->setSpacing(10);
+    root->setContentsMargins(20, 16, 20, 16);
+    root->setSpacing(8);
 
+    auto* titleRow = new QHBoxLayout();
+    titleRow->setSpacing(8);
     m_logo = new QLabel(this);
-    m_logo->setAlignment(Qt::AlignCenter);
     QPixmap logo(QStringLiteral(":/itn/logo"));
     if (!logo.isNull()) {
-        m_logo->setPixmap(logo.scaled(112, 112, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        m_logo->setPixmap(logo.scaled(28, 28, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     }
-    root->addWidget(m_logo, 0, Qt::AlignHCenter);
+    titleRow->addWidget(m_logo);
 
+    auto* titleCol = new QVBoxLayout();
+    titleCol->setSpacing(0);
     m_brand = new QLabel(QStringLiteral("ITN"), this);
     {
         QFont f = m_brand->font();
-        f.setPointSize(48);
+        f.setPointSize(14);
         f.setBold(true);
-        f.setLetterSpacing(QFont::AbsoluteSpacing, 10);
+        f.setLetterSpacing(QFont::AbsoluteSpacing, 2);
         m_brand->setFont(f);
     }
-    m_brand->setAlignment(Qt::AlignCenter);
-    m_brand->setStyleSheet(QStringLiteral("color: #f0fdf4;"));
-    root->addWidget(m_brand);
+    m_brand->setStyleSheet(QStringLiteral("color: #e8f2ea;"));
+    titleCol->addWidget(m_brand);
 
-    auto* studio = new QLabel(QStringLiteral("STUDIO LAUNCHER"), this);
+    auto* channel = new QLabel(QStringLiteral("STUDIO · STABLE"), this);
     {
-        QFont f = studio->font();
-        f.setPointSize(10);
+        QFont f = channel->font();
+        f.setPointSize(8);
         f.setBold(true);
-        f.setLetterSpacing(QFont::AbsoluteSpacing, 4);
-        studio->setFont(f);
+        f.setLetterSpacing(QFont::AbsoluteSpacing, 2);
+        channel->setFont(f);
     }
-    studio->setAlignment(Qt::AlignCenter);
-    studio->setStyleSheet(QStringLiteral("color: #4ade80;"));
-    root->addWidget(studio);
+    channel->setStyleSheet(QStringLiteral("color: #5c7263;"));
+    titleCol->addWidget(channel);
+    titleRow->addLayout(titleCol, 1);
+    root->addLayout(titleRow);
 
-    root->addSpacing(8);
+    root->addSpacing(6);
 
     m_title = new QLabel(tr("Проверка обновлений…"), this);
     {
         QFont f = m_title->font();
-        f.setPointSize(15);
+        f.setPointSize(12);
         f.setBold(true);
         m_title->setFont(f);
     }
-    m_title->setAlignment(Qt::AlignCenter);
-    m_title->setStyleSheet(QStringLiteral("color: #bbf7d0;"));
+    m_title->setStyleSheet(QStringLiteral("color: #e8f2ea;"));
     root->addWidget(m_title);
 
     m_detail = new QLabel(this);
-    m_detail->setAlignment(Qt::AlignCenter);
     m_detail->setWordWrap(true);
-    m_detail->setStyleSheet(QStringLiteral("color: #86efac;"));
+    m_detail->setStyleSheet(QStringLiteral("color: #93a89a;"));
     root->addWidget(m_detail);
 
     root->addStretch(1);
 
     m_bar = new QProgressBar(this);
-    m_bar->setRange(0, 0);  // indeterminate until first progress
+    m_bar->setRange(0, 0);
     m_bar->setTextVisible(false);
     m_bar->setFixedHeight(12);
     m_bar->setStyleSheet(QStringLiteral(
-        "QProgressBar { background: rgba(8,14,10,200); border: 1px solid #166534; border-radius: 6px; }"
+        "QProgressBar { background: rgba(0,0,0,115); border: 1px solid #1e2f25; border-radius: 2px; }"
         "QProgressBar::chunk { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,"
-        " stop:0 #15803d, stop:0.45 #4ade80, stop:1 #22c55e); border-radius: 5px; }"));
+        " stop:0 #8a6a14, stop:0.55 #f0b429, stop:1 #35c26e); border-radius: 1px; }"));
     root->addWidget(m_bar);
 
     m_fade = new QGraphicsOpacityEffect(this);
@@ -90,9 +91,9 @@ ITNUpdateSplash::ITNUpdateSplash(QWidget* parent) : QDialog(parent)
     setGraphicsEffect(m_fade);
 
     m_pulseAnim = new QPropertyAnimation(this, "brandPulse", this);
-    m_pulseAnim->setDuration(1800);
-    m_pulseAnim->setStartValue(0.94);
-    m_pulseAnim->setEndValue(1.08);
+    m_pulseAnim->setDuration(1600);
+    m_pulseAnim->setStartValue(0.96);
+    m_pulseAnim->setEndValue(1.04);
     m_pulseAnim->setEasingCurve(QEasingCurve::InOutSine);
     m_pulseAnim->setLoopCount(-1);
 
@@ -110,7 +111,7 @@ void ITNUpdateSplash::setBrandPulse(qreal v)
     m_brandPulse = v;
     if (m_brand) {
         QFont f = m_brand->font();
-        f.setPointSizeF(48.0 * m_brandPulse);
+        f.setPointSizeF(14.0 * m_brandPulse);
         m_brand->setFont(f);
     }
 }
@@ -138,7 +139,7 @@ void ITNUpdateSplash::finishAndAccept()
     m_pulseAnim->stop();
     m_shimmer.stop();
     auto* fadeOut = new QPropertyAnimation(m_fade, "opacity", this);
-    fadeOut->setDuration(480);
+    fadeOut->setDuration(420);
     fadeOut->setStartValue(m_fade->opacity());
     fadeOut->setEndValue(0.0);
     fadeOut->setEasingCurve(QEasingCurve::OutCubic);
@@ -156,7 +157,7 @@ void ITNUpdateSplash::startAnimations()
 {
     m_shownAt.start();
     auto* fadeIn = new QPropertyAnimation(m_fade, "opacity", this);
-    fadeIn->setDuration(560);
+    fadeIn->setDuration(480);
     fadeIn->setStartValue(0.0);
     fadeIn->setEndValue(1.0);
     fadeIn->setEasingCurve(QEasingCurve::OutCubic);
@@ -171,53 +172,48 @@ void ITNUpdateSplash::paintEvent(QPaintEvent* event)
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
 
-    QLinearGradient bg(0, 0, width(), height());
-    bg.setColorAt(0.0, QColor(6, 14, 10));
-    bg.setColorAt(0.4, QColor(12, 26, 17));
-    bg.setColorAt(1.0, QColor(5, 10, 8));
+    QLinearGradient bg(0, 0, 0, height());
+    bg.setColorAt(0.0, QColor(19, 33, 26));
+    bg.setColorAt(1.0, QColor(13, 23, 18));
     p.fillRect(rect(), bg);
 
-    // Banner soft wash
+    {
+        QRadialGradient g(width() * 0.85, -height() * 0.1, width() * 0.7);
+        g.setColorAt(0.0, QColor(53, 194, 110, 28));
+        g.setColorAt(1.0, QColor(53, 194, 110, 0));
+        p.fillRect(rect(), g);
+    }
+    {
+        QRadialGradient g(-width() * 0.05, height() * 1.05, width() * 0.65);
+        g.setColorAt(0.0, QColor(240, 180, 41, 22));
+        g.setColorAt(1.0, QColor(240, 180, 41, 0));
+        p.fillRect(rect(), g);
+    }
+
     QPixmap banner(QStringLiteral(":/itn/banner"));
     if (!banner.isNull()) {
-        p.setOpacity(0.28);
+        p.setOpacity(0.12);
         p.drawPixmap(rect(), banner.scaled(size(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
         p.setOpacity(1.0);
     }
 
-    // Soft radial glow behind brand
-    {
-        const QPointF c(width() * 0.5, height() * 0.28);
-        QRadialGradient glow(c, width() * 0.42);
-        glow.setColorAt(0.0, QColor(34, 197, 94, 55));
-        glow.setColorAt(0.45, QColor(22, 163, 74, 18));
-        glow.setColorAt(1.0, QColor(22, 163, 74, 0));
-        p.fillRect(rect(), glow);
-    }
-
-    // Floating particles
-    for (int i = 0; i < 18; ++i) {
-        const qreal t = m_shimmerPhase + i * 0.37;
-        const qreal x = (0.08 + 0.84 * ((qSin(t * 0.7 + i) + 1.0) * 0.5)) * width();
-        const qreal y = (0.12 + 0.7 * ((qCos(t * 0.55 + i * 1.3) + 1.0) * 0.5)) * height();
-        const qreal r = 1.2 + (i % 4) * 0.7;
-        p.setPen(Qt::NoPen);
-        p.setBrush(QColor(74, 222, 128, 35 + (i % 5) * 8));
-        p.drawEllipse(QPointF(x, y), r, r);
-    }
-
-    // Animated green sweep line
     const qreal x = (0.5 + 0.5 * qSin(m_shimmerPhase)) * width();
-    QLinearGradient sweep(x - 140, 0, x + 140, 0);
-    sweep.setColorAt(0.0, QColor(34, 197, 94, 0));
-    sweep.setColorAt(0.5, QColor(74, 222, 128, 48));
-    sweep.setColorAt(1.0, QColor(34, 197, 94, 0));
+    QLinearGradient sweep(x - 100, 0, x + 100, height());
+    sweep.setColorAt(0.0, QColor(240, 180, 41, 0));
+    sweep.setColorAt(0.45, QColor(240, 180, 41, 28));
+    sweep.setColorAt(0.7, QColor(53, 194, 110, 22));
+    sweep.setColorAt(1.0, QColor(53, 194, 110, 0));
     p.fillRect(rect(), sweep);
 
-    // Soft vignette frame
-    QPen pen(QColor(74, 222, 128, 100));
-    pen.setWidth(2);
+    QPen pen(QColor(44, 68, 52, 200));
+    pen.setWidth(1);
     p.setPen(pen);
     p.setBrush(Qt::NoBrush);
-    p.drawRoundedRect(rect().adjusted(1, 1, -1, -1), 12, 12);
+    p.drawRoundedRect(rect().adjusted(0, 0, -1, -1), 10, 10);
+
+    QLinearGradient edge(0, 0, width(), 0);
+    edge.setColorAt(0.0, QColor(240, 180, 41, 180));
+    edge.setColorAt(0.55, QColor(255, 214, 107, 120));
+    edge.setColorAt(1.0, QColor(53, 194, 110, 180));
+    p.fillRect(QRect(1, 1, width() - 2, 2), edge);
 }
