@@ -586,8 +586,8 @@ QString JavaUtils::findBundledJava()
 {
     const QString appDir = QCoreApplication::applicationDirPath();
     const QStringList direct = {
-        FS::PathCombine(FS::PathCombine(appDir, "jre", "bin"), javaExecutable),
-        FS::PathCombine(FS::PathCombine(appDir, "java", "java-runtime-gamma", "bin"), javaExecutable),
+        FS::PathCombine(appDir, "jre", "bin", javaExecutable),
+        FS::PathCombine(appDir, "java", "java-runtime-gamma", "bin", javaExecutable),
     };
     for (const auto& path : direct) {
         if (QFileInfo::exists(path)) {
