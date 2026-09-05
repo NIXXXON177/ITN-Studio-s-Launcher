@@ -42,6 +42,7 @@
 #include <QtMath>
 
 #include <QIcon>
+#include <QLinearGradient>
 #include <QTextEdit>
 #include "BaseInstance.h"
 #include "InstanceList.h"
@@ -72,9 +73,19 @@ ListViewDelegate::ListViewDelegate(QObject* parent) : QStyledItemDelegate(parent
 
 void drawSelectionRect(QPainter* painter, const QStyleOptionViewItem& option, const QRect& rect)
 {
-    if ((option.state & QStyle::State_Selected))
-        painter->fillRect(rect, option.palette.brush(QPalette::Highlight));
-    else {
+    if ((option.state & QStyle::State_Selected)) {
+        // ITN: pine → gold selection (not flat neon green)
+        QLinearGradient g(rect.topLeft(), rect.bottomRight());
+        g.setColorAt(0.0, QColor(53, 194, 110, 200));
+        g.setColorAt(0.55, QColor(240, 180, 41, 210));
+        g.setColorAt(1.0, QColor(255, 214, 107, 190));
+        painter->fillRect(rect, g);
+        QPen pen(QColor(240, 180, 41, 180));
+        pen.setWidth(1);
+        painter->setPen(pen);
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRect(rect.adjusted(0, 0, -1, -1));
+    } else {
         QColor backgroundColor = option.palette.color(QPalette::Window);
         backgroundColor.setAlpha(160);
         painter->fillRect(rect, QBrush(backgroundColor));
@@ -169,7 +180,7 @@ static QSize viewItemTextSize(const QStyleOptionViewItem* option)
     textLayout.setFont(option->font);
     textLayout.setText(option->text);
     const int textMargin = style->pixelMetric(QStyle::PM_FocusFrameHMargin, option, option->widget) + 1;
-    QRect bounds(0, 0, 100 - 2 * textMargin, 600);
+    QRect bounds(0, 0, 120 - 2 * textMargin, 600);
     qreal height = 0, widthUsed = 0;
     viewItemTextLayout(textLayout, bounds.width(), height, widthUsed);
     const QSize size(qCeil(widthUsed), qCeil(height));
@@ -191,7 +202,7 @@ void ListViewDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
     QStyle* style = opt.widget ? opt.widget->style() : QApplication::style();
 
     // const int iconSize =  style->pixelMetric(QStyle::PM_IconViewIconSize);
-    const int iconSize = 48;
+    const int iconSize = 64;
     QRect iconbox = opt.rect;
     const int textMargin = style->pixelMetric(QStyle::PM_FocusFrameHMargin, 0, opt.widget) + 1;
     QRect textRect = opt.rect;
@@ -330,11 +341,11 @@ QSize ListViewDelegate::sizeHint(const QStyleOptionViewItem& option, const QMode
 
     QStyle* style = opt.widget ? opt.widget->style() : QApplication::style();
     const int textMargin = style->pixelMetric(QStyle::PM_FocusFrameHMargin, &option, opt.widget) + 1;
-    int height = 48 + textMargin * 2 + 5;  // TODO: turn constants into variables
+    int height = 64 + textMargin * 2 + 5;  // ITN: larger icons
     QSize szz = viewItemTextSize(&opt);
     height += szz.height();
     // FIXME: maybe the icon items could scale and keep proportions?
-    QSize sz(100, height);
+    QSize sz(120, height);
     return sz;
 }
 

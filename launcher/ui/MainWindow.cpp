@@ -162,14 +162,6 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     addToolBar(Qt::LeftToolBarArea, ui->instanceToolBar);
     ui->instanceToolBar->show();
 
-    // ITN: no adding/copying/exporting instances, minimal UI
-    ui->actionAddInstance->setVisible(false);
-    ui->actionCopyInstance->setVisible(false);
-    ui->actionExportInstance->setVisible(false);
-    ui->actionExportInstanceZip->setVisible(false);
-    ui->actionExportInstanceMrPack->setVisible(false);
-    ui->actionExportInstanceFlamePack->setVisible(false);
-
     // ITN: auto-import the bundled modpack on first run
     QTimer::singleShot(0, this, [this] { checkITNAutoImport(); });
 
@@ -177,7 +169,8 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     qApp->installEventFilter(new ITNHoverFilter(this));
 
     setWindowIcon(APPLICATION->logo());
-    setWindowTitle(APPLICATION->applicationDisplayName());
+    // ITN: clean title without Prism version channel suffix
+    setWindowTitle(QStringLiteral("ITN Launcher"));
 #ifndef QT_NO_ACCESSIBILITY
     setAccessibleName(BuildConfig.LAUNCHER_DISPLAYNAME);
 #endif
@@ -216,6 +209,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         ui->instanceToolBar->addContextMenuAction(ui->instanceToolBar->toggleViewAction());
         ui->instanceToolBar->addContextMenuAction(ui->actionToggleStatusBar);
         ui->instanceToolBar->addContextMenuAction(ui->actionLockToolbars);
+
+        // ITN: apply after WideBar restore — otherwise saved visibility brings clutter back
+        applyITNMinimalChrome();
     }
 
     // set the menu for the folders help, accounts, and export tool buttons
@@ -955,6 +951,27 @@ void MainWindow::addInstance(const QString& url, const QMap<QString, QString>& e
 void MainWindow::on_actionAddInstance_triggered()
 {
     addInstance();
+}
+
+void MainWindow::applyITNMinimalChrome()
+{
+    // Keep Launch / Stop / Edit — hide admin clutter (PineCraft-like minimal sidebar)
+    ui->actionAddInstance->setVisible(false);
+    ui->actionCopyInstance->setVisible(false);
+    ui->actionExportInstance->setVisible(false);
+    ui->actionExportInstanceZip->setVisible(false);
+    ui->actionExportInstanceMrPack->setVisible(false);
+    ui->actionExportInstanceFlamePack->setVisible(false);
+    ui->actionDeleteInstance->setVisible(false);
+    ui->actionChangeInstGroup->setVisible(false);
+    ui->actionCreateInstanceShortcut->setVisible(false);
+    ui->actionViewSelectedInstFolder->setVisible(false);
+    if (changeIconButton) {
+        changeIconButton->setVisible(false);
+    }
+    if (renameButton) {
+        renameButton->setVisible(false);
+    }
 }
 
 void MainWindow::checkITNAutoImport()
